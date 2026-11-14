@@ -16,5 +16,13 @@ namespace SpherexApi.models
         public string? ImageUrl {get; set;}
 
     }
+
+    public record PythonEpoch(string Date, string FileName);
+
+    public record PythonResponse(
+        List<PythonEpoch> Epochs,
+        string? SubtractedFileName,
+        List<string> ContaminationFlags
+    );
     
 }

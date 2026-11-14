@@ -2,6 +2,7 @@ using SpherexApi.models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// adds CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -10,9 +11,8 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 app.UseCors();
@@ -39,33 +39,43 @@ app.MapGet("/api/targets" , () =>
     return Results.Ok(targets);
 });
 
-app.MapGet("/api/sky", (string ra, string dec, double? fov, HttpRequest request) =>
+app.MapGet("/api/sky", async (string ra, string dec, double? fov, HttpRequest request, IHttpClientFactory httpClientFactory, IConfiguration config) =>
 {
-
-    if(ra == string.Empty || dec == string.Empty)
+    if (string.IsNullOrWhiteSpace(ra) || string.IsNullOrWhiteSpace(dec))
     {
         return Results.BadRequest("request parameters are invalid! inform the ra and dec coordinates!");
-    } 
+    }
 
     var targetFov = fov ?? 0.5;
     var baseUrl = $"{request.Scheme}://{request.Host}";
+    
+    var processorUrl = config["ProcessorUrl"] ?? "http://localhost:5000";
 
-    var response = new SkyResponse()
+    var client = httpClientFactory.CreateClient();
+    var pyHttpResponse = await client.PostAsJsonAsync($"{processorUrl}/process", new { ra, dec, fov = targetFov });
+
+    if (!pyHttpResponse.IsSuccessStatusCode)
     {
-        Ra =  ra,
+        return Results.Problem("Erro ao comunicar com o motor Python.");
+    }
+
+    var pyData = await pyHttpResponse.Content.ReadFromJsonAsync<PythonResponse>();
+
+    var response = new SkyResponse
+    {
+        Ra = ra,
         Dec = dec,
-        Fov = fov,
-        Epochs = [
-            new EpochItem{Date = "2025-03-15", ImageUrl = $"{baseUrl}/images/mock1.jpeg"},
-            new EpochItem{Date = "2025-12-14", ImageUrl = $"{baseUrl}/images/mock3.jpg"}
-        ],
-        SubtractedImageUrl = $"{baseUrl}/images/mock_diff.png",
-        ContaminationFlags = ["NONE"]
-        
+        Fov = targetFov,
+        Epochs = pyData?.Epochs?.Select(e => new EpochItem
+        {
+            Date = e.Date,
+            ImageUrl = $"{baseUrl}/images/{e.FileName}"
+        }).ToList() ?? [],
+        SubtractedImageUrl = pyData?.SubtractedFileName != null ? $"{baseUrl}/images/{pyData.SubtractedFileName}" : null,
+        ContaminationFlags = pyData?.ContaminationFlags ?? ["NONE"]
     };
 
     return Results.Ok(response);
-
 });
 
 app.Run();

@@ -5,10 +5,10 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./shared-data:/data
+      - ./backEnd/wwwroot/images:/data
 
   backend:
-    build: ./backend
+    build: ./backEnd
     container_name: spherex-backend
     ports:
       - "8080:8080"
@@ -16,6 +16,6 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ProcessorUrl=http://processor:5000
     volumes:
-      - ./shared-data:/data
+      - ./backEnd/wwwroot/images:/app/wwwroot/images
     depends_on:
       - processor
