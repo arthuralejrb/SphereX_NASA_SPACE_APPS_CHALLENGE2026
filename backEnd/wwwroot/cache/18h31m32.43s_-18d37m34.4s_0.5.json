@@ -1,0 +1,10 @@
+{
+  "Ra": "18h31m32.43s",
+  "Dec": "-18d37m34.4s",
+  "Fov": 0.5,
+  "Epochs": [],
+  "SubtractedImageUrl": null,
+  "ContaminationFlags": [
+    "NONE"
+  ]
+}
