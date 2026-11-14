@@ -607,3 +607,6 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+backEnd/wwwroot/cache/*.json
+backEnd/wwwroot/images/*.png
