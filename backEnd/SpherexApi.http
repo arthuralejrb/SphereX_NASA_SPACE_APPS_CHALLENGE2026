@@ -1,0 +1,6 @@
+@SpherexApi_HostAddress = http://localhost:5286
+
+GET {{SpherexApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

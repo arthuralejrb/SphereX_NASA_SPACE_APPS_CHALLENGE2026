@@ -1,0 +1,21 @@
+services:
+  processor:
+    build: ./processor
+    container_name: spherex-processor
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./shared-data:/data
+
+  backend:
+    build: ./backend
+    container_name: spherex-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ProcessorUrl=http://processor:5000
+    volumes:
+      - ./shared-data:/data
+    depends_on:
+      - processor
