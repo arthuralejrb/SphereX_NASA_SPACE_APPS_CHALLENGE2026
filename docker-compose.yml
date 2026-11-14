@@ -12,6 +12,16 @@ services:
     depends_on:
       - processor
 
+  frontend:
+    build:
+      context: ./frontEnd
+      args:
+        - VITE_API_URL=http://localhost:8080
+    container_name: spherex-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
   processor:
     build: ./processor
     ports:
