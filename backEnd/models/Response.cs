@@ -2,20 +2,19 @@ namespace SpherexApi.models
 {
     public record SkyResponse
     {
-        public string? Ra { get; set; }
-        public string? Dec { get; set; }
-        public double? Fov { get; set; }
-        public string? Source { get; set; }
-        public string? Band { get; set; }
-        public List<EpochItem>? Epochs { get; set; }
-        public string? SubtractedImageUrl { get; set; }
-        public List<string>? ContaminationFlags { get; set; }
-    }
+        public string? Ra {get; set;}
+        public string? Dec {get; set;}
+        public double? Fov {get; set;}
+        public List<EpochItem>? Epochs {get; set;}
+        public string? SubtractedImageUrl {get; set;}
+        public List<string>? ContaminationFlags {get; set;}
+    }   
 
     public record EpochItem
     {
-        public string? Date { get; set; }
-        public string? ImageUrl { get; set; }
+        public string? Date {get; set;}
+        public string? ImageUrl {get; set;}
+
     }
 
     public record PythonEpoch(string Date, string FileName);
@@ -23,8 +22,7 @@ namespace SpherexApi.models
     public record PythonResponse(
         List<PythonEpoch> Epochs,
         string? SubtractedFileName,
-        List<string> ContaminationFlags,
-        string? Source = null,
-        string? Band = null
+        List<string> ContaminationFlags
     );
+    
 }

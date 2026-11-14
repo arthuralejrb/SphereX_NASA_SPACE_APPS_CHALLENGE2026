@@ -12,11 +12,26 @@ interface Props {
 }
 
 const dateFormat = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })
+const dateTimeFormat = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  timeZone: 'UTC',
+})
 
-/** "2025-03-15" -> "15 de mar. de 2025"; devolve o texto original se não for uma data. */
+/**
+ * "2025-03-15" -> "15 de mar. de 2025"; com hora ("2025-04-24T18:01:05") inclui "18:01:05".
+ * O back-end manda a hora em UTC sem o "Z" no fim. Devolve o texto original se não for uma data.
+ */
 function formatDate(iso: string) {
-  const time = Date.parse(iso)
-  return Number.isNaN(time) ? iso : dateFormat.format(time)
+  const hasTime = iso.includes('T')
+  const hasZone = /(Z|[+-]\d\d:?\d\d)$/.test(iso)
+  const time = Date.parse(hasTime && !hasZone ? `${iso}Z` : iso)
+  if (Number.isNaN(time)) return iso
+  return (hasTime ? dateTimeFormat : dateFormat).format(time)
 }
 
 export function Level2View({ search, onBack }: Props) {
