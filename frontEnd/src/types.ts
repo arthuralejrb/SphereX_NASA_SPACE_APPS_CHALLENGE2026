@@ -19,6 +19,9 @@ export interface Target {
   name: string
   description: string
   coords: Coords
+  /** Texto original vindo do back-end; é a chave do cache dele. */
+  raText?: string
+  decText?: string
 }
 
 export interface Epoch {

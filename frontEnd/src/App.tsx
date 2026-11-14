@@ -48,13 +48,13 @@ export default function App() {
 
   /** Core loop: fixa a coordenada, abre o Nível 2 e busca as épocas em paralelo. */
   const inspect = useCallback(
-    async (coords: Coords, label?: string) => {
+    async (coords: Coords, label?: string, raw?: { ra: string; dec: string }) => {
       const requestId = ++requestRef.current
       add(coords, label)
       focusOnMap(coords)
       setSearch({ status: 'loading', coords, label })
       setViewMode('level2')
-      const result = await spherexApi.getSky(coords)
+      const result = await spherexApi.getSky(coords, undefined, raw)
       // Ignora respostas de buscas antigas se o usuário já pediu outra.
       if (requestRef.current === requestId) setSearch({ status: 'done', coords, label, result })
     },
@@ -123,7 +123,13 @@ export default function App() {
           onHistoryClear={clear}
           featured={FEATURED_TARGETS}
           targets={targets}
-          onTargetInspect={(target) => void inspect(target.coords, target.name)}
+          onTargetInspect={(target) =>
+            void inspect(
+              target.coords,
+              target.name,
+              target.raText && target.decText ? { ra: target.raText, dec: target.decText } : undefined,
+            )
+          }
           onOpenOptions={() => setOptionsOpen(true)}
         />
       </div>

@@ -12,12 +12,14 @@ import { mockEpochImage, mockSubtractedImage } from './mockImages'
 
 const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 const TIMEOUT_MS = 6000
+/** O back-end espera o processador Python por até 30 s. */
+const SKY_TIMEOUT_MS = 35000
 export const DEFAULT_FOV = 0.5
 
-async function request<T>(path: string): Promise<T> {
+async function request<T>(path: string, timeoutMs = TIMEOUT_MS): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status} em ${path}`)
   return (await res.json()) as T
@@ -38,7 +40,7 @@ interface TargetDto {
 
 function toTarget(dto: TargetDto): Target | null {
   const coords = parseCoords(`${dto.ra} ${dto.dec}`)
-  return coords ? { name: dto.name, description: dto.description.trim(), coords } : null
+  return coords ? { name: dto.name, description: dto.description.trim(), coords, raText: dto.ra, decText: dto.dec } : null
 }
 
 const MOCK_TARGETS: Target[] = (
@@ -97,22 +99,41 @@ function mockSky(coords: Coords, fov: number): SkyData {
   }
 }
 
-export async function getSky(coords: Coords, fov = DEFAULT_FOV): Promise<ApiResult<SkyData>> {
+/** Mantém só o caminho (/images/x.png) e usa o endereço da API que o front conhece. */
+function toImageUrl(url: string): string {
+  try {
+    return `${BASE_URL}${new URL(url, BASE_URL).pathname}`
+  } catch {
+    return url
+  }
+}
+
+/**
+ * `raw` é o texto de RA/Dec exatamente como o back-end o publicou (alvos de /api/targets):
+ * ele usa esse texto como chave de cache, então reformatar faria perder o cache.
+ */
+export async function getSky(
+  coords: Coords,
+  fov = DEFAULT_FOV,
+  raw?: { ra: string; dec: string },
+): Promise<ApiResult<SkyData>> {
   try {
     const query = new URLSearchParams({
-      ra: formatRa(coords.raDeg),
-      dec: formatDec(coords.decDeg),
+      ra: raw?.ra ?? formatRa(coords.raDeg),
+      dec: raw?.dec ?? formatDec(coords.decDeg),
       fov: String(fov),
     })
-    const dto = await request<SkyDto>(`/api/sky?${query}`)
-    const epochs = (dto.epochs ?? []).filter((e) => e.date && e.imageUrl)
+    const dto = await request<SkyDto>(`/api/sky?${query}`, SKY_TIMEOUT_MS)
+    const epochs = (dto.epochs ?? [])
+      .filter((e) => e.date && e.imageUrl)
+      .map((e) => ({ date: e.date, imageUrl: toImageUrl(e.imageUrl) }))
     if (epochs.length === 0) throw new Error('Resposta sem épocas')
     return {
       data: {
         coords,
         fov: dto.fov ?? fov,
         epochs,
-        subtractedImageUrl: dto.subtractedImageUrl ?? null,
+        subtractedImageUrl: dto.subtractedImageUrl ? toImageUrl(dto.subtractedImageUrl) : null,
         contaminationFlags: dto.contaminationFlags ?? ['NONE'],
       },
       source: 'api',
