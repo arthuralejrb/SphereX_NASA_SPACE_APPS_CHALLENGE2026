@@ -23,14 +23,13 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.Run();
 app.UseStaticFiles();
 
 app.MapGet("/api/targets" , () =>
 {
     var targets = new []
     {
-      new {name = "WISE 0855", description = "quick movement brown dwarf ", ra = "08h55m10,831s", dec = "-7d14m42,53s"},
+      new {name = "WISE 0855", description = "quick movement brown dwarf ", ra = "08h55m10.831s", dec = "-7d14m42.53s"},
       new {name = "Barnard's Star", description = "Estrela com maior movimento próprio", ra = "17h57m48.50s", dec = "+04d41m36.1s"},
       new {name = "Epsilon Indi B", description = "Par de anãs marrons em órbita", ra = "22h04m10.52s", dec = "-56d46m57.7s"},
       new {name = "RW Aurigae", description = "Estrela variável jovem", ra = "05h07m49.54s", dec = "+30d24m05.1s"},
@@ -40,13 +39,15 @@ app.MapGet("/api/targets" , () =>
     return Results.Ok(targets);
 });
 
-app.MapGet("/api/sky/", (string ra, string dec, double? fov, HttpRequest request) =>
+app.MapGet("/api/sky", (string ra, string dec, double? fov, HttpRequest request) =>
 {
-    
-    if(ra == string.Empty || dec == string.Empty || fov == null)
+
+    if(ra == string.Empty || dec == string.Empty)
     {
-        return Results.BadRequest("request parameters are invalid!");
+        return Results.BadRequest("request parameters are invalid! inform the ra and dec coordinates!");
     } 
+
+    var targetFov = fov ?? 0.5;
     var baseUrl = $"{request.Scheme}://{request.Host}";
 
     var response = new SkyResponse()
@@ -66,7 +67,5 @@ app.MapGet("/api/sky/", (string ra, string dec, double? fov, HttpRequest request
     return Results.Ok(response);
 
 });
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+
+app.Run();
