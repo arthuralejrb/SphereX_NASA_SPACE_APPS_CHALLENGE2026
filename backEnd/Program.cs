@@ -3,7 +3,6 @@ using SpherexApi.models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// adds CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -14,7 +13,6 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddOpenApi();
 
-// Timeout de 30s para dar tempo do Python tentar a NASA (10s) e gerar os PNGs
 builder.Services.AddHttpClient("ProcessorClient", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
@@ -23,13 +21,11 @@ builder.Services.AddHttpClient("ProcessorClient", client =>
 var app = builder.Build();
 app.UseCors();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-// Garante que as pastas wwwroot, images e cache existam antes de subir
 var webRootPath = app.Environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
 var imagesDir = Path.Combine(webRootPath, "images");
 var cacheDir = Path.Combine(webRootPath, "cache");
@@ -58,18 +54,16 @@ app.MapGet("/api/sky", async (string ra, string dec, double? fov, HttpRequest re
     if (string.IsNullOrWhiteSpace(ra) || string.IsNullOrWhiteSpace(dec))
     {
         return Results.BadRequest("request parameters are invalid! inform the ra and dec coordinates!");
-    
     }
 
     var targetFov = fov ?? 0.5;
     var baseUrl = $"{request.Scheme}://{request.Host}";
 
-    // 1. Cria uma chave limpa para o nome do arquivo de cache
     var rawKey = $"{ra.Trim()}_{dec.Trim()}_{targetFov}";
     var safeKey = string.Concat(rawKey.Split(Path.GetInvalidFileNameChars())).Replace(" ", "");
     var cacheFilePath = Path.Combine(cacheDir, $"{safeKey}.json");
 
-    // 2. CACHE HIT: Se já existe no disco, devolve na hora sem chamar o Python
+    // Só devolve o cache se ele existir e tiver épocas válidas (ignora caches vazios antigos)
     if (File.Exists(cacheFilePath))
     {
         var cachedJson = await File.ReadAllTextAsync(cacheFilePath);
@@ -77,10 +71,12 @@ app.MapGet("/api/sky", async (string ra, string dec, double? fov, HttpRequest re
         {
             PropertyNameCaseInsensitive = true
         });
-        return Results.Ok(cachedResponse);
+        if (cachedResponse?.Epochs?.Count > 0)
+        {
+            return Results.Ok(cachedResponse);
+        }
     }
 
-    // 3. CACHE MISS: Chama o motor Python
     var processorUrl = config["ProcessorUrl"] ?? "http://localhost:5000";
     var client = httpClientFactory.CreateClient("ProcessorClient");
 
@@ -100,6 +96,8 @@ app.MapGet("/api/sky", async (string ra, string dec, double? fov, HttpRequest re
             Ra = ra,
             Dec = dec,
             Fov = targetFov,
+            Source = pyData?.Source ?? "UNKNOWN",
+            Band = pyData?.Band,
             Epochs = pyData?.Epochs?.Select(e => new EpochItem
             {
                 Date = e.Date,
@@ -109,9 +107,12 @@ app.MapGet("/api/sky", async (string ra, string dec, double? fov, HttpRequest re
             ContaminationFlags = pyData?.ContaminationFlags ?? ["NONE"]
         };
 
-        // 4. Salva no disco para as próximas requisições serem instantâneas
-        var jsonToSave = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(cacheFilePath, jsonToSave);
+        // Nunca grava cache se a resposta vier sem épocas
+        if (response.Epochs.Count > 0)
+        {
+            var jsonToSave = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(cacheFilePath, jsonToSave);
+        }
 
         return Results.Ok(response);
     }
