@@ -1,0 +1,23 @@
+{
+  "Ra": "08h55m10.831s",
+  "Dec": "-7d14m42.53s",
+  "Fov": 0.5,
+  "Epochs": [
+    {
+      "Date": "2025-04-24T18:01:05.843",
+      "ImageUrl": "http://localhost:8080/images/08h55m10.8_epoca_1.png"
+    },
+    {
+      "Date": "2025-04-24T18:03:14.774",
+      "ImageUrl": "http://localhost:8080/images/08h55m10.8_epoca_2.png"
+    },
+    {
+      "Date": "2025-04-24T18:05:23.704",
+      "ImageUrl": "http://localhost:8080/images/08h55m10.8_epoca_3.png"
+    }
+  ],
+  "SubtractedImageUrl": "http://localhost:8080/images/08h55m10.8_subtraida.png",
+  "ContaminationFlags": [
+    "DETECTOR_ARTIFACT_OR_COSMIC_RAY"
+  ]
+}

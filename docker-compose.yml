@@ -1,15 +1,6 @@
 services:
-  processor:
-    build: ./processor
-    container_name: spherex-processor
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./backEnd/wwwroot/images:/data
-
   backend:
     build: ./backEnd
-    container_name: spherex-backend
     ports:
       - "8080:8080"
     environment:
@@ -17,6 +8,7 @@ services:
       - ProcessorUrl=http://processor:5000
     volumes:
       - ./backEnd/wwwroot/images:/app/wwwroot/images
+      - ./backEnd/wwwroot/cache:/app/wwwroot/cache
     depends_on:
       - processor
 
@@ -30,3 +22,12 @@ services:
       - "3000:80"
     depends_on:
       - backend
+  processor:
+    build: ./processor
+    ports:
+      - "5000:5000"
+    environment:
+      - OUTPUT_DIR=/app/images
+    volumes:
+      - ./backEnd/wwwroot/images:/app/images
+      - ./processor/dados_fits:/app/dados_fits
