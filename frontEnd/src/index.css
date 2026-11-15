@@ -1096,6 +1096,55 @@ p {
   font-size: 10px;
 }
 
+.timeline__tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeline__hint--error {
+  background: rgb(240 113 120 / 0.12);
+  color: #f0a0a5;
+}
+
+/* Botão de download: quadradinho no canto superior direito de cada miniatura */
+.dl-btn {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.dl-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text-strong);
+}
+
+.dl-btn:disabled {
+  opacity: 0.55;
+}
+
+.thumb-wrap {
+  position: relative;
+}
+
+.thumb-wrap > .dl-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+/* Espaço para o botão não ficar por cima do texto */
+.thumb-wrap > .thumb {
+  padding-right: 32px;
+}
+
 .timeline__list {
   flex: 1;
   min-height: 0;

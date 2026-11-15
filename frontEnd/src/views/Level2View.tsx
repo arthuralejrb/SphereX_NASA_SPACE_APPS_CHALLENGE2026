@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Columns2, GitCompareArrows, ImageOff, Info, LoaderCircle, Minus, Plus, RotateCcw, SquareSplitHorizontal, Undo2, X } from 'lucide-react'
+import { Columns2, Download, GitCompareArrows, ImageOff, Info, LoaderCircle, Minus, Plus, RotateCcw, SquareSplitHorizontal, Undo2, X } from 'lucide-react'
 import { ReactCompareSlider, ReactCompareSliderImage } from 'react-compare-slider'
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
 import type { ApiResult, Epoch, SearchState, SkyData } from '../types'
 import { formatDec, formatRa } from '../utils/coords'
+import { downloadImage, downloadImagesAsZip, slug } from '../utils/download'
+import type { DownloadItem } from '../utils/download'
 
 interface Props {
   search: SearchState
@@ -59,7 +61,7 @@ export function Level2View({ search, onBack }: Props) {
 
       {search.status === 'done' ? (
         // A chave reinicia seleção e comparador quando chega uma nova busca.
-        <Analysis key={`${search.coords.raDeg},${search.coords.decDeg}`} result={search.result} onBack={onBack} />
+        <Analysis key={`${search.coords.raDeg},${search.coords.decDeg}`} result={search.result} label={search.label} onBack={onBack} />
       ) : (
         <div className="level2__loading">
           {search.status === 'loading' ? (
@@ -79,7 +81,7 @@ export function Level2View({ search, onBack }: Props) {
 type Selection = number | 'subtracted'
 type CompareLayout = 'slider' | 'side'
 
-function Analysis({ result, onBack }: { result: ApiResult<SkyData>; onBack(): void }) {
+function Analysis({ result, label, onBack }: { result: ApiResult<SkyData>; label?: string; onBack(): void }) {
   const sky = result.data
   const [epochs] = useState<Epoch[]>(() => [...sky.epochs].sort((a, b) => a.date.localeCompare(b.date)))
   const [selected, setSelected] = useState<Selection>(0)
@@ -88,6 +90,37 @@ function Analysis({ result, onBack }: { result: ApiResult<SkyData>; onBack(): vo
   /** Índices das duas épocas comparadas, na ordem em que foram escolhidas. */
   const [pair, setPair] = useState<[number, number]>([0, Math.min(1, epochs.length - 1)])
   const [showDetails, setShowDetails] = useState(false)
+  /** Qual download está em andamento: índice da época, 'subtracted' ou 'all'. */
+  const [downloading, setDownloading] = useState<Selection | 'all' | null>(null)
+  const [downloadError, setDownloadError] = useState(false)
+
+  // Nomes dos arquivos: alvo (ou coordenada) + data da captura.
+  const fileBase = `orbita_${slug(label ?? `${formatRa(sky.coords.raDeg)}_${formatDec(sky.coords.decDeg)}`)}`
+  const epochFile = (i: number): DownloadItem => ({
+    url: epochs[i].imageUrl,
+    name: `${fileBase}_epoca-${i + 1}_${slug(epochs[i].date.slice(0, 19).replace(/:/g, '-'))}`,
+  })
+  const subtractedFile: DownloadItem | null = sky.subtractedImageUrl
+    ? { url: sky.subtractedImageUrl, name: `${fileBase}_subtracao` }
+    : null
+
+  async function runDownload(key: Selection | 'all', task: () => Promise<void>) {
+    setDownloading(key)
+    setDownloadError(false)
+    try {
+      await task()
+    } catch (err) {
+      console.warn('[download] não foi possível baixar a imagem.', err)
+      setDownloadError(true)
+    } finally {
+      setDownloading(null)
+    }
+  }
+
+  const downloadAll = () =>
+    runDownload('all', () =>
+      downloadImagesAsZip([...epochs.map((_, i) => epochFile(i)), ...(subtractedFile ? [subtractedFile] : [])], `${fileBase}_imagens`),
+    )
 
   const canCompare = epochs.length >= 2
   const [before, after] = [...pair].sort((a, b) => a - b)
@@ -127,15 +160,28 @@ function Analysis({ result, onBack }: { result: ApiResult<SkyData>; onBack(): vo
       <aside className="timeline" aria-label="Galeria temporal">
         <header className="timeline__header">
           <span>Linha do tempo</span>
-          <span className="count">{epochs.length}</span>
+          <span className="timeline__tools">
+            <DownloadButton
+              label={`Baixar todas as imagens (${epochs.length + (subtractedFile ? 1 : 0)}) em um arquivo .zip`}
+              busy={downloading === 'all'}
+              disabled={downloading !== null}
+              onClick={downloadAll}
+            />
+            <span className="count">{epochs.length}</span>
+          </span>
         </header>
         {comparing && <p className="timeline__hint">Escolha as duas datas a comparar.</p>}
+        {downloadError && (
+          <p className="timeline__hint timeline__hint--error" role="alert">
+            Não foi possível baixar. Tente de novo.
+          </p>
+        )}
         <ol className="timeline__list">
           {epochs.map((epoch, i) => {
             const role = comparing ? (i === before ? 'A' : i === after ? 'B' : null) : null
             const active = comparing ? role !== null : selected === i
             return (
-              <li key={`${epoch.date}-${i}`}>
+              <li key={`${epoch.date}-${i}`} className="thumb-wrap">
                 <button
                   type="button"
                   className={`thumb${active ? ' thumb--active' : ''}`}
@@ -149,15 +195,22 @@ function Analysis({ result, onBack }: { result: ApiResult<SkyData>; onBack(): vo
                   </span>
                   {role && <span className="thumb__role">{role}</span>}
                 </button>
+                <DownloadButton
+                  label={`Baixar a imagem de ${formatDate(epoch.date)}`}
+                  busy={downloading === i}
+                  disabled={downloading !== null}
+                  onClick={() => runDownload(i, () => downloadImage(epochFile(i)))}
+                />
               </li>
             )
           })}
         </ol>
-        {sky.subtractedImageUrl && (
+        {sky.subtractedImageUrl && subtractedFile && (
           <div className="timeline__extra">
             <header className="timeline__header">
               <span>Subtração</span>
             </header>
+            <div className="thumb-wrap">
             <button
               type="button"
               className={`thumb${!comparing && selected === 'subtracted' ? ' thumb--active' : ''}`}
@@ -171,6 +224,13 @@ function Analysis({ result, onBack }: { result: ApiResult<SkyData>; onBack(): vo
                 <span className="thumb__sub">O que mudou entre as épocas</span>
               </span>
             </button>
+            <DownloadButton
+              label="Baixar a imagem de diferença"
+              busy={downloading === 'subtracted'}
+              disabled={downloading !== null}
+              onClick={() => runDownload('subtracted', () => downloadImage(subtractedFile))}
+            />
+            </div>
           </div>
         )}
       </aside>
@@ -281,6 +341,15 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <span className="field__label">{label}</span>
       <span className="field__value">{children}</span>
     </span>
+  )
+}
+
+/** Quadradinho com o ícone de download; vira um indicador de carregamento enquanto baixa. */
+function DownloadButton({ label, busy, disabled, onClick }: { label: string; busy: boolean; disabled: boolean; onClick(): void }) {
+  return (
+    <button type="button" className="dl-btn" onClick={onClick} disabled={disabled} aria-label={label} title={label}>
+      {busy ? <LoaderCircle size={12} className="spin" aria-hidden="true" /> : <Download size={12} aria-hidden="true" />}
+    </button>
   )
 }
 
