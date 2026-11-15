@@ -1,0 +1,29 @@
+{
+  "Ra": "16h32m40.23s",
+  "Dec": "+66d45m17.9s",
+  "Fov": 0.5,
+  "Band": "SPHEREx-D3",
+  "Source": "NASA_API_LIVE",
+  "Epochs": [
+    {
+      "Date": "2025-06-02T03:01:42.774",
+      "ImageUrl": "http://localhost:8080/images/16h32m40.23s_+66d45m17.9s_0.5_epoca_1.png"
+    },
+    {
+      "Date": "2025-12-30T03:43:16.119",
+      "ImageUrl": "http://localhost:8080/images/16h32m40.23s_+66d45m17.9s_0.5_epoca_2.png"
+    },
+    {
+      "Date": "2026-05-11T06:36:04.131",
+      "ImageUrl": "http://localhost:8080/images/16h32m40.23s_+66d45m17.9s_0.5_epoca_3.png"
+    }
+  ],
+  "SubtractedImageUrl": "http://localhost:8080/images/16h32m40.23s_+66d45m17.9s_0.5_subtraida.png",
+  "ContaminationFlags": [
+    "BLOOM",
+    "OVERFLOW",
+    "PERSIST",
+    "SUR_ERROR",
+    "TRANSIENT"
+  ]
+}

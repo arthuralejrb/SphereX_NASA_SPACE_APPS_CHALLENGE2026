@@ -14,10 +14,11 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddOpenApi();
 
-// Timeout de 30s para dar tempo do Python tentar a NASA (10s) e gerar os PNGs
+// Timeout de 180s: na primeira busca de uma coordenada o Python consulta a NASA (~5s),
+// baixa 3 FITS inteiros de ~65 MB (~1 min) e gera os PNGs. Depois disso o cache responde na hora.
 builder.Services.AddHttpClient("ProcessorClient", client =>
 {
-    client.Timeout = TimeSpan.FromSeconds(30);
+    client.Timeout = TimeSpan.FromSeconds(180);
 });
 
 var app = builder.Build();
@@ -100,6 +101,8 @@ app.MapGet("/api/sky", async (string ra, string dec, double? fov, HttpRequest re
             Ra = ra,
             Dec = dec,
             Fov = targetFov,
+            Band = pyData?.Band,
+            Source = pyData?.Source,
             Epochs = pyData?.Epochs?.Select(e => new EpochItem
             {
                 Date = e.Date,
@@ -109,9 +112,14 @@ app.MapGet("/api/sky", async (string ra, string dec, double? fov, HttpRequest re
             ContaminationFlags = pyData?.ContaminationFlags ?? ["NONE"]
         };
 
-        // 4. Salva no disco para as próximas requisições serem instantâneas
-        var jsonToSave = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(cacheFilePath, jsonToSave);
+        // 4. Salva no disco para as próximas requisições serem instantâneas.
+        //    Só quando vieram imagens reais da NASA: resposta vazia ou do plano B (FITS locais,
+        //    de outra região do céu) não pode virar cache permanente desta coordenada.
+        if (response.Epochs is { Count: > 0 } && response.Source == "NASA_API_LIVE")
+        {
+            var jsonToSave = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(cacheFilePath, jsonToSave);
+        }
 
         return Results.Ok(response);
     }

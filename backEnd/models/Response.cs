@@ -5,6 +5,8 @@ namespace SpherexApi.models
         public string? Ra {get; set;}
         public string? Dec {get; set;}
         public double? Fov {get; set;}
+        public string? Band {get; set;}
+        public string? Source {get; set;}
         public List<EpochItem>? Epochs {get; set;}
         public string? SubtractedImageUrl {get; set;}
         public List<string>? ContaminationFlags {get; set;}
@@ -22,7 +24,9 @@ namespace SpherexApi.models
     public record PythonResponse(
         List<PythonEpoch> Epochs,
         string? SubtractedFileName,
-        List<string> ContaminationFlags
+        List<string> ContaminationFlags,
+        string? Source = null,
+        string? Band = null
     );
     
 }

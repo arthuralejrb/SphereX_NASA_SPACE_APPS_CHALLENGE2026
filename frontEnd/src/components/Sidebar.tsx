@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ArrowRight, ChevronLeft, ChevronRight, Clock, LoaderCircle, Menu, Search, Trash2, X } from 'lucide-react'
+import { FOV_OPTIONS } from '../config'
 import type { ApiResult, HistoryEntry, SearchState, Target } from '../types'
 import { formatDec, formatRa } from '../utils/coords'
 import { Accordion } from './Accordion'
@@ -11,6 +12,9 @@ interface Props {
   search: SearchState
   /** Devolve uma mensagem de erro, ou null se a busca foi aceita. */
   onSearch(text: string): Promise<string | null>
+  /** Campo de visão (graus) que a próxima busca vai pedir. */
+  fov: number
+  onFovChange(fov: number): void
   onReopenSearch(): void
   history: HistoryEntry[]
   onHistoryOpen(entry: HistoryEntry): void
@@ -89,6 +93,25 @@ export function Sidebar(props: Props) {
             <p id="search-help" className={`search__help${error ? ' search__help--error' : ''}`} role={error ? 'alert' : undefined}>
               {error ?? 'Busque um corpo celeste ou informe sua posição no céu.'}
             </p>
+            <fieldset className="fov">
+              <legend className="fov__label" title="Largura da área do céu mostrada na análise. Vale para a próxima busca.">
+                Campo de visão
+              </legend>
+              <div className="fov__options">
+                {FOV_OPTIONS.map((option) => (
+                  <label key={option} className={`fov__option${option === props.fov ? ' fov__option--on' : ''}`}>
+                    <input
+                      type="radio"
+                      name="fov"
+                      value={option}
+                      checked={option === props.fov}
+                      onChange={() => props.onFovChange(option)}
+                    />
+                    {String(option).replace('.', ',')}°
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           </form>
 
           <div className="sidebar__drawers">

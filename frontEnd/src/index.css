@@ -666,6 +666,67 @@ p {
   color: var(--danger);
 }
 
+/* Seletor do campo de visão, logo abaixo da busca */
+.fov {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.fov__label {
+  float: left; /* tira a legenda da borda do fieldset para ela entrar na linha */
+  padding: 0;
+  color: var(--muted);
+  font-size: 9.5px;
+}
+
+.fov__options {
+  display: flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fov__option {
+  position: relative;
+  padding: 4px 9px;
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.fov__option + .fov__option {
+  border-left: 1px solid var(--border-strong);
+}
+
+.fov__option:hover {
+  color: var(--text-strong);
+}
+
+.fov__option--on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.fov__option:focus-within {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* O rádio continua existindo para teclado e leitores de tela, só não aparece */
+.fov__option input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
 /* ---------- Gavetas ---------- */
 
 .accordion {

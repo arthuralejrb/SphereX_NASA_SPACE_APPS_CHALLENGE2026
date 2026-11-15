@@ -1,0 +1,21 @@
+{
+  "Ra": "17h57m48.50s",
+  "Dec": "+04d41m36.1s",
+  "Fov": 0.5,
+  "Band": "SPHEREx-D1",
+  "Source": "NASA_API_LIVE",
+  "Epochs": [
+    {
+      "Date": "2025-09-05T02:34:22.352",
+      "ImageUrl": "http://localhost:8080/images/17h57m48.50s_+04d41m36.1s_0.5_epoca_1.png"
+    },
+    {
+      "Date": "2026-03-11T13:33:43.536",
+      "ImageUrl": "http://localhost:8080/images/17h57m48.50s_+04d41m36.1s_0.5_epoca_2.png"
+    }
+  ],
+  "SubtractedImageUrl": "http://localhost:8080/images/17h57m48.50s_+04d41m36.1s_0.5_subtraida.png",
+  "ContaminationFlags": [
+    "HALO"
+  ]
+}
