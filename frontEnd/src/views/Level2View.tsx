@@ -55,6 +55,11 @@ export function Level2View({ search, onBack }: Props) {
             dados de demonstração
           </span>
         )}
+        {search.status === 'done' && search.result.source === 'api' && search.result.data.source === 'LOCAL_REAL_FITS' && (
+          <span className="badge level2__source" title="API da NASA sem recorte público para esta coordenada: usando FITS reais locais">
+            FITS locais (fallback)
+          </span>
+        )}
       </header>
 
       {search.status === 'done' ? (
@@ -187,7 +192,10 @@ function Analysis({ result, onBack }: { result: ApiResult<SkyData>; onBack(): vo
             </Field>
             <Field label="RA">{formatRa(sky.coords.raDeg)}</Field>
             <Field label="Dec">{formatDec(sky.coords.decDeg)}</Field>
-            <Field label="Banda">{(comparing ? epochs[before].band : current?.band) ?? 'Não informada'}</Field>
+            <Field label="Banda">{(comparing ? epochs[before].band : current?.band) ?? sky.band ?? 'Não informada'}</Field>
+            {sky.contaminationFlags.some((f) => f && f !== 'NONE') && (
+              <Field label="Alertas">{sky.contaminationFlags.filter((f) => f !== 'NONE').join(', ')}</Field>
+            )}
             <button
               type="button"
               className={`icon-btn meta-bar__info${showDetails ? ' meta-bar__info--on' : ''}`}
@@ -204,7 +212,15 @@ function Analysis({ result, onBack }: { result: ApiResult<SkyData>; onBack(): vo
               <Field label="Campo de visão">{sky.fov}°</Field>
               <Field label="Épocas">{epochs.length}</Field>
               <Field label="Flags de contaminação">{sky.contaminationFlags.join(', ')}</Field>
-              <Field label="Origem">{result.source === 'api' ? 'Back-end' : 'Simulação local'}</Field>
+              <Field label="Origem">
+                {result.source !== 'api'
+                  ? 'Simulação local'
+                  : sky.source === 'NASA_API_LIVE'
+                    ? 'NASA IRSA (ao vivo)'
+                    : sky.source === 'LOCAL_REAL_FITS'
+                      ? 'Back-end (FITS reais locais)'
+                      : 'Back-end'}
+              </Field>
             </div>
           )}
         </section>

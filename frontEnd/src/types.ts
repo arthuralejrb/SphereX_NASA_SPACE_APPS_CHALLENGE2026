@@ -34,11 +34,12 @@ export interface Epoch {
 export interface SkyData {
   coords: Coords
   fov: number
+  source?: string
+  band?: string
   epochs: Epoch[]
   subtractedImageUrl: string | null
   contaminationFlags: string[]
 }
-
 export interface HistoryEntry {
   coords: Coords
   label?: string

@@ -7,3 +7,5 @@ reproject
 numpy
 pillow
 matplotlib
+fsspec
+requests

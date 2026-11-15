@@ -75,10 +75,13 @@ interface SkyDto {
   ra: string
   dec: string
   fov: number
+  source?: string | null
+  band?: string | null
   epochs: { date: string; imageUrl: string }[] | null
   subtractedImageUrl: string | null
   contaminationFlags: string[] | null
 }
+
 
 /** Datas fictícias, espaçadas ~6 meses como as varreduras de céu inteiro do SPHEREx. */
 const MOCK_DATES = ['2025-05-12', '2025-11-09', '2026-05-10', '2026-11-07']
@@ -124,14 +127,17 @@ export async function getSky(
       fov: String(fov),
     })
     const dto = await request<SkyDto>(`/api/sky?${query}`, SKY_TIMEOUT_MS)
+    const band = dto.band ?? undefined
     const epochs = (dto.epochs ?? [])
       .filter((e) => e.date && e.imageUrl)
-      .map((e) => ({ date: e.date, imageUrl: toImageUrl(e.imageUrl) }))
+      .map((e) => ({ date: e.date, imageUrl: toImageUrl(e.imageUrl), band }))
     if (epochs.length === 0) throw new Error('Resposta sem épocas')
     return {
       data: {
         coords,
         fov: dto.fov ?? fov,
+        source: dto.source ?? undefined,
+        band,
         epochs,
         subtractedImageUrl: dto.subtractedImageUrl ? toImageUrl(dto.subtractedImageUrl) : null,
         contaminationFlags: dto.contaminationFlags ?? ['NONE'],
