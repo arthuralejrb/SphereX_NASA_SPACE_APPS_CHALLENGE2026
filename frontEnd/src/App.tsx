@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AladinMap } from './components/AladinMap'
 import type { AladinMapHandle } from './components/AladinMap'
 import { OptionsModal } from './components/OptionsModal'
+import { WelcomeModal } from './components/WelcomeModal'
 import { Sidebar } from './components/Sidebar'
 import { FEATURED_TARGETS, FOV_OPTIONS } from './config'
 import { useSearchHistory } from './hooks/useSearchHistory'
@@ -33,6 +34,16 @@ function readFov() {
   }
 }
 
+const WELCOME_KEY = 'orbitax.welcome'
+
+function readWelcome(): boolean {
+  try {
+    return localStorage.getItem(WELCOME_KEY) !== '1'
+  } catch {
+    return true
+  }
+}
+
 export default function App() {
   const mapRef = useRef<AladinMapHandle>(null)
   const requestRef = useRef(0)
@@ -41,10 +52,22 @@ export default function App() {
   const [search, setSearch] = useState<SearchState>({ status: 'idle' })
   const [targets, setTargets] = useState<ApiResult<Target[]> | null>(null)
   const [collapsed, setCollapsed] = useState(readCollapsed)
-  const [optionsOpen, setOptionsOpen] = useState(false)
+  /** Painel de ajuda e contato: fechado, aberto, ou aberto já no tutorial. */
+  const [options, setOptions] = useState<'closed' | 'open' | 'help'>('closed')
+  /** Boas-vindas: aparece na primeira visita (fica anotado no navegador que já foi vista). */
+  const [welcome, setWelcome] = useState(readWelcome)
   /** Tamanho do recorte pedido ao back-end; vale para a próxima busca. */
   const [fov, setFov] = useState(readFov)
   const { history, add, remove, clear } = useSearchHistory()
+
+  const closeWelcome = useCallback(() => {
+    setWelcome(false)
+    try {
+      localStorage.setItem(WELCOME_KEY, '1')
+    } catch {
+      // sem armazenamento local: a tela volta a aparecer na próxima visita
+    }
+  }, [])
 
   function changeFov(value: number) {
     setFov(value)
@@ -140,7 +163,7 @@ export default function App() {
     })
   }
 
-  const closeOptions = useCallback(() => setOptionsOpen(false), [])
+  const closeOptions = useCallback(() => setOptions('closed'), [])
   const inLevel1 = viewMode === 'level1'
 
   return (
@@ -170,14 +193,15 @@ export default function App() {
           featured={FEATURED_TARGETS}
           targets={targets}
           onTargetInspect={inspectTarget}
-          onOpenOptions={() => setOptionsOpen(true)}
+          onOpenOptions={(help) => setOptions(help ? 'help' : 'open')}
         />
       </div>
 
       {viewMode === 'level2' && <Level2View search={search} onBack={() => setViewMode('level1')} />}
       {/* viewMode === 'level3': reservado para expansão futura. */}
 
-      {optionsOpen && <OptionsModal onClose={closeOptions} />}
+      {options !== 'closed' && <OptionsModal help={options === 'help'} onClose={closeOptions} />}
+      {welcome && <WelcomeModal onClose={closeWelcome} />}
     </div>
   )
 }

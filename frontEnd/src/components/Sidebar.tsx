@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import type { FormEvent } from 'react'
-import { ArrowRight, ChevronLeft, ChevronRight, Clock, LoaderCircle, Menu, Search, Trash2, X } from 'lucide-react'
-import { FOV_OPTIONS } from '../config'
+import type { FormEvent, ReactNode } from 'react'
+import { ArrowRight, ChevronLeft, ChevronRight, Clock, HelpCircle, History, LifeBuoy, LoaderCircle, MessagesSquare, Scan, Search, Star, Trash2, X } from 'lucide-react'
+import { FOV_OPTIONS, LINKS } from '../config'
 import type { ApiResult, HistoryEntry, SearchState, Target } from '../types'
 import { formatDec, formatRa } from '../utils/coords'
 import { Accordion } from './Accordion'
@@ -24,7 +24,8 @@ interface Props {
   featured: Target[]
   targets: ApiResult<Target[]> | null
   onTargetInspect(target: Target): void
-  onOpenOptions(): void
+  /** Abre o painel de opções; `help` já mostra o tutorial aberto. */
+  onOpenOptions(help: boolean): void
 }
 
 const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -71,7 +72,7 @@ export function Sidebar(props: Props) {
         <>
           <form className="search" onSubmit={submit} role="search">
             <div className={`search__field${error ? ' search__field--error' : ''}`}>
-              <Search size={16} aria-hidden="true" />
+              <Search size={19} className="key-icon" aria-hidden="true" />
               <input
                 ref={inputRef}
                 value={query}
@@ -95,6 +96,7 @@ export function Sidebar(props: Props) {
             </p>
             <fieldset className="fov">
               <legend className="fov__label" title="Largura da área do céu mostrada na análise. Vale para a próxima busca.">
+                <Scan size={16} aria-hidden="true" />
                 Campo de visão
               </legend>
               <div className="fov__options">
@@ -115,12 +117,13 @@ export function Sidebar(props: Props) {
           </form>
 
           <div className="sidebar__drawers">
-            <Accordion title="Pesquisa" aside={<span className="count">{resultCount}</span>}>
+            <Accordion title="Pesquisa" icon={<Search size={17} className="key-icon" aria-hidden="true" />} aside={<span className="count">{resultCount}</span>}>
               <SearchPanel search={search} onReopen={props.onReopenSearch} />
             </Accordion>
 
             <Accordion
               title="Histórico"
+              icon={<History size={17} className="key-icon" aria-hidden="true" />}
               aside={
                 <>
                   {history.length > 0 && (
@@ -174,6 +177,7 @@ export function Sidebar(props: Props) {
 
             <Accordion
               title="Acesso rápido"
+              icon={<Star size={17} className="key-icon" aria-hidden="true" />}
               aside={targets?.source === 'mock' ? <span className="badge" title="Back-end indisponível: alvos de demonstração">mock</span> : undefined}
             >
               <ul className="card rows">
@@ -198,19 +202,35 @@ export function Sidebar(props: Props) {
 
           <footer className="sidebar__footer">
             <span>Dados abertos · SPHEREx / IRSA</span>
-            <button
-              type="button"
-              className="menu-btn"
-              onClick={props.onOpenOptions}
-              aria-label="Abrir opções e suporte"
-              title="Opções e suporte"
-            >
-              <Menu size={15} />
-            </button>
+            {/* Ajuda, fórum e suporte direto na barra: antes ficavam escondidos num menu. */}
+            <nav className="quick-links" aria-label="Ajuda e contato">
+              <button type="button" className="quick-link" onClick={() => props.onOpenOptions(true)} aria-label="Ajuda e tutorial" title="Ajuda e tutorial">
+                <HelpCircle size={20} aria-hidden="true" />
+              </button>
+              <QuickLink href={LINKS.forum} label="Fórum da comunidade" onFallback={() => props.onOpenOptions(false)}>
+                <MessagesSquare size={20} aria-hidden="true" />
+              </QuickLink>
+              <QuickLink href={LINKS.support} label="Contato com o suporte" onFallback={() => props.onOpenOptions(false)}>
+                <LifeBuoy size={20} aria-hidden="true" />
+              </QuickLink>
+            </nav>
           </footer>
         </>
       )}
     </aside>
+  )
+}
+
+/** Abre o link numa nova aba; enquanto o link não existe, mostra o painel de opções (que explica isso). */
+function QuickLink({ href, label, onFallback, children }: { href: string; label: string; onFallback(): void; children: ReactNode }) {
+  return href ? (
+    <a className="quick-link" href={href} target="_blank" rel="noreferrer" aria-label={label} title={label}>
+      {children}
+    </a>
+  ) : (
+    <button type="button" className="quick-link" onClick={onFallback} aria-label={label} title={`${label} (ainda não configurado)`}>
+      {children}
+    </button>
   )
 }
 

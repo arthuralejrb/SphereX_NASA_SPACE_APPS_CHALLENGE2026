@@ -37,7 +37,7 @@ async function fetchImage(item: DownloadItem): Promise<{ filename: string; blob:
   return { filename: `${item.name}.${EXTENSIONS[blob.type] ?? 'png'}`, blob }
 }
 
-function save(blob: Blob, filename: string) {
+export function saveBlob(blob: Blob, filename: string) {
   const href = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = href
@@ -52,7 +52,7 @@ function save(blob: Blob, filename: string) {
 /** Baixa uma imagem. */
 export async function downloadImage(item: DownloadItem): Promise<void> {
   const { filename, blob } = await fetchImage(item)
-  save(blob, filename)
+  saveBlob(blob, filename)
 }
 
 /** Baixa várias imagens de uma vez, dentro de um único .zip. */
@@ -64,5 +64,5 @@ export async function downloadImagesAsZip(items: DownloadItem[], zipName: string
     entries[filename] = [new Uint8Array(await blob.arrayBuffer()), { level: 0 }]
   }
   const zipped = zipSync(entries)
-  save(new Blob([zipped.slice().buffer], { type: 'application/zip' }), `${zipName}.zip`)
+  saveBlob(new Blob([zipped.slice().buffer], { type: 'application/zip' }), `${zipName}.zip`)
 }
