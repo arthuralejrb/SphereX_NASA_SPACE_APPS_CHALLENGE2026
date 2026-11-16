@@ -4,6 +4,8 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 
 interface Props {
   title: string
+  /** Ícone que identifica a seção, exibido antes do título. */
+  icon?: ReactNode
   /** Contador ou ações exibidos à direita do título. */
   aside?: ReactNode
   defaultOpen?: boolean
@@ -11,7 +13,7 @@ interface Props {
 }
 
 /** Gaveta retrátil da barra lateral. */
-export function Accordion({ title, aside, defaultOpen = true, children }: Props) {
+export function Accordion({ title, icon, aside, defaultOpen = true, children }: Props) {
   const [open, setOpen] = useState(defaultOpen)
   const panelId = useId()
 
@@ -26,6 +28,7 @@ export function Accordion({ title, aside, defaultOpen = true, children }: Props)
           onClick={() => setOpen((v) => !v)}
         >
           {open ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
+          {icon}
           {title}
         </button>
         {aside !== undefined && <span className="accordion__aside">{aside}</span>}

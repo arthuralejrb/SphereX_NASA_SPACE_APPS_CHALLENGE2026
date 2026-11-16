@@ -12,8 +12,11 @@ import { mockEpochImage, mockSubtractedImage } from './mockImages'
 
 const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 const TIMEOUT_MS = 6000
-/** O back-end espera o processador Python por até 30 s. */
-const SKY_TIMEOUT_MS = 35000
+/**
+ * O back-end espera o processador Python por até 180 s: na primeira busca de uma
+ * coordenada ele baixa os FITS da NASA (~1 min). As seguintes vêm do cache, na hora.
+ */
+const SKY_TIMEOUT_MS = 185000
 export const DEFAULT_FOV = 0.5
 
 async function request<T>(path: string, timeoutMs = TIMEOUT_MS): Promise<T> {
@@ -75,8 +78,10 @@ interface SkyDto {
   ra: string
   dec: string
   fov: number
-  source?: string | null
+  /** Detector do SPHEREx usado (ex.: "SPHEREx-D5"); null nos dados locais. */
   band?: string | null
+  /** "NASA_API_LIVE" ou "LOCAL_REAL_FITS". */
+  source?: string | null
   epochs: { date: string; imageUrl: string }[] | null
   subtractedImageUrl: string | null
   contaminationFlags: string[] | null

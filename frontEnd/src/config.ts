@@ -31,5 +31,12 @@ export const FEATURED_TARGETS: Target[] = [
   { name: 'Sgr A*', description: 'Centro galáctico', coords: { raDeg: 266.416837, decDeg: -29.007811 } },
 ]
 
+/**
+ * Tamanhos (graus) que o usuário pode escolher para o recorte do Nível 2.
+ * Medido: até 1° a busca quase não muda de tempo; em 1,5° gasta ~3 s a mais e as imagens
+ * somam ~5 MB; acima disso o alvo deixa de caber inteiro no detector. O processador corta em 1,5°.
+ */
+export const FOV_OPTIONS = [0.25, 0.5, 1, 1.5]
+
 /** Campo de visão (graus) usado ao centralizar o mapa numa coordenada. */
 export const FOCUS_FOV = 1.5

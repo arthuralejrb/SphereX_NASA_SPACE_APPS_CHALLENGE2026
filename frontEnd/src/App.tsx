@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AladinMap } from './components/AladinMap'
 import type { AladinMapHandle } from './components/AladinMap'
 import { OptionsModal } from './components/OptionsModal'
+import { WelcomeModal } from './components/WelcomeModal'
 import { Sidebar } from './components/Sidebar'
-import { FEATURED_TARGETS } from './config'
+import { FEATURED_TARGETS, FOV_OPTIONS } from './config'
 import { useSearchHistory } from './hooks/useSearchHistory'
-import { spherexApi } from './services/spherexApi'
+import { findKnownTarget, findTargetAt, resolveName } from './services/nameResolver'
+import { DEFAULT_FOV, spherexApi } from './services/spherexApi'
 import type { ApiResult, Coords, SearchState, Target, ViewMode } from './types'
 import { parseCoords } from './utils/coords'
 import { Level2View } from './views/Level2View'
@@ -20,6 +22,28 @@ function readCollapsed() {
   }
 }
 
+const FOV_KEY = 'spherex.fov'
+
+/** Último campo de visão escolhido; só vale se ainda for uma das opções oferecidas. */
+function readFov() {
+  try {
+    const saved = Number(localStorage.getItem(FOV_KEY))
+    return FOV_OPTIONS.includes(saved) ? saved : DEFAULT_FOV
+  } catch {
+    return DEFAULT_FOV
+  }
+}
+
+const WELCOME_KEY = 'orbitax.welcome'
+
+function readWelcome(): boolean {
+  try {
+    return localStorage.getItem(WELCOME_KEY) !== '1'
+  } catch {
+    return true
+  }
+}
+
 export default function App() {
   const mapRef = useRef<AladinMapHandle>(null)
   const requestRef = useRef(0)
@@ -28,8 +52,31 @@ export default function App() {
   const [search, setSearch] = useState<SearchState>({ status: 'idle' })
   const [targets, setTargets] = useState<ApiResult<Target[]> | null>(null)
   const [collapsed, setCollapsed] = useState(readCollapsed)
-  const [optionsOpen, setOptionsOpen] = useState(false)
+  /** Painel de ajuda e contato: fechado, aberto, ou aberto já no tutorial. */
+  const [options, setOptions] = useState<'closed' | 'open' | 'help'>('closed')
+  /** Boas-vindas: aparece na primeira visita (fica anotado no navegador que já foi vista). */
+  const [welcome, setWelcome] = useState(readWelcome)
+  /** Tamanho do recorte pedido ao back-end; vale para a próxima busca. */
+  const [fov, setFov] = useState(readFov)
   const { history, add, remove, clear } = useSearchHistory()
+
+  const closeWelcome = useCallback(() => {
+    setWelcome(false)
+    try {
+      localStorage.setItem(WELCOME_KEY, '1')
+    } catch {
+      // sem armazenamento local: a tela volta a aparecer na próxima visita
+    }
+  }, [])
+
+  function changeFov(value: number) {
+    setFov(value)
+    try {
+      localStorage.setItem(FOV_KEY, String(value))
+    } catch {
+      // preferência apenas em memória
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -54,35 +101,55 @@ export default function App() {
       focusOnMap(coords)
       setSearch({ status: 'loading', coords, label })
       setViewMode('level2')
-      const result = await spherexApi.getSky(coords, undefined, raw)
+      const result = await spherexApi.getSky(coords, fov, raw)
       // Ignora respostas de buscas antigas se o usuário já pediu outra.
       if (requestRef.current === requestId) setSearch({ status: 'done', coords, label, result })
     },
-    [add, focusOnMap],
+    [add, focusOnMap, fov],
+  )
+
+  /** Abre um alvo da nossa lista, com o RA/Dec no texto original quando ele veio do back-end. */
+  const inspectTarget = useCallback(
+    (target: Target) =>
+      void inspect(
+        target.coords,
+        target.name,
+        target.raText && target.decText ? { ra: target.raText, dec: target.decText } : undefined,
+      ),
+    [inspect],
   )
 
   const handleSearch = useCallback(
     async (text: string): Promise<string | null> => {
+      const knownTargets = [...(targets?.data ?? []), ...FEATURED_TARGETS]
       const coords = parseCoords(text)
       if (coords) {
-        void inspect(coords)
+        // Coordenada de um dos nossos alvos: abre o próprio alvo (mesma busca que pelo nome).
+        const here = findTargetAt(coords, knownTargets)
+        if (here) inspectTarget(here)
+        else void inspect(coords)
         return null
       }
       if (!/[a-z]/i.test(text)) {
         return 'Coordenada inválida. RA vai de 0 a 360° (ou 0 a 24h) e Dec de -90° a +90°.'
       }
+      // 1. Nome de um dos nossos alvos: mesma coordenada (e mesmo resultado) do acesso rápido.
+      const known = findKnownTarget(text, knownTargets)
+      if (known) {
+        inspectTarget(known)
+        return null
+      }
+      // 2. Qualquer outro objeto catalogado: pergunta ao serviço de nomes.
       try {
-        const resolved = await mapRef.current?.resolve(text)
-        if (!resolved) return 'O mapa ainda está carregando. Tente novamente em instantes.'
-        void inspect(resolved, text)
+        void inspect(await resolveName(text), text)
         return null
       } catch (err) {
-        return err instanceof Error && err.message === 'timeout'
-          ? 'O serviço de nomes de objetos não respondeu. Tente de novo ou use coordenadas.'
-          : `Não consegui localizar "${text}": nome desconhecido ou serviço de nomes fora do ar. Tente coordenadas.`
+        return err instanceof Error && err.message === 'not-found'
+          ? `Não conheço nenhum objeto chamado "${text}". Confira o nome ou use coordenadas.`
+          : 'O serviço de nomes de objetos não respondeu. Tente de novo ou use coordenadas.'
       }
     },
-    [inspect],
+    [inspect, inspectTarget, targets],
   )
 
   function toggleSidebar() {
@@ -96,7 +163,7 @@ export default function App() {
     })
   }
 
-  const closeOptions = useCallback(() => setOptionsOpen(false), [])
+  const closeOptions = useCallback(() => setOptions('closed'), [])
   const inLevel1 = viewMode === 'level1'
 
   return (
@@ -116,6 +183,8 @@ export default function App() {
           onToggle={toggleSidebar}
           search={search}
           onSearch={handleSearch}
+          fov={fov}
+          onFovChange={changeFov}
           onReopenSearch={() => setViewMode('level2')}
           history={history}
           onHistoryOpen={(entry) => void inspect(entry.coords, entry.label)}
@@ -123,21 +192,16 @@ export default function App() {
           onHistoryClear={clear}
           featured={FEATURED_TARGETS}
           targets={targets}
-          onTargetInspect={(target) =>
-            void inspect(
-              target.coords,
-              target.name,
-              target.raText && target.decText ? { ra: target.raText, dec: target.decText } : undefined,
-            )
-          }
-          onOpenOptions={() => setOptionsOpen(true)}
+          onTargetInspect={inspectTarget}
+          onOpenOptions={(help) => setOptions(help ? 'help' : 'open')}
         />
       </div>
 
       {viewMode === 'level2' && <Level2View search={search} onBack={() => setViewMode('level1')} />}
       {/* viewMode === 'level3': reservado para expansão futura. */}
 
-      {optionsOpen && <OptionsModal onClose={closeOptions} />}
+      {options !== 'closed' && <OptionsModal help={options === 'help'} onClose={closeOptions} />}
+      {welcome && <WelcomeModal onClose={closeWelcome} />}
     </div>
   )
 }

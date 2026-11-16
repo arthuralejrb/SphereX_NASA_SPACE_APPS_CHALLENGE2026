@@ -344,8 +344,8 @@ export function AladinMap({ ref, selected, onSelect, onInspect }: Props) {
 
       {selected && <div ref={markerRef} className="map__marker" aria-hidden="true" />}
 
-      <div className="brand" aria-label="órbita. Explorador celeste">
-        <span className="brand__name">órbita.</span>
+      <div className="brand" aria-label="OrbitaX. Explorador celeste">
+        <span className="brand__name">OrbitaX</span>
         <span className="brand__tag">
           <span className="brand__title">Explorador celeste</span>
           <span className="brand__sub">SPHEREx / IRSA · NASA</span>
@@ -359,12 +359,12 @@ export function AladinMap({ ref, selected, onSelect, onInspect }: Props) {
             {selected && (
               <button
                 type="button"
-                className="icon-btn icon-btn--sm"
+                className="coords-card__inspect"
                 onClick={() => onInspect(selected)}
-                aria-label="Inspecionar o ponto fixado no Nível 2"
-                title="Inspecionar no Nível 2"
+                title="Abrir a análise deste ponto: imagens em várias datas"
               >
-                <Search size={13} />
+                <Search size={15} aria-hidden="true" />
+                Analisar
               </button>
             )}
             <button
@@ -375,7 +375,7 @@ export function AladinMap({ ref, selected, onSelect, onInspect }: Props) {
               aria-label="Copiar coordenadas"
               title={copied ? 'Copiado' : 'Copiar coordenadas'}
             >
-              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? <Check size={16} /> : <Copy size={16} />}
             </button>
           </span>
         </header>
@@ -393,7 +393,6 @@ export function AladinMap({ ref, selected, onSelect, onInspect }: Props) {
       </section>
 
       <div className="viewer-card">
-        <span className="viewer-card__title">Visualizador Aladin</span>
         <span className="viewer-card__sub">Arraste para explorar · Role para aproximar</span>
         {status === 'ready' && (
           <span className="viewer-card__survey">

@@ -4,19 +4,22 @@ import { ExternalLink, HelpCircle, LifeBuoy, MessagesSquare, X } from 'lucide-re
 import { LINKS } from '../config'
 
 interface Props {
+  /** Abre já com o tutorial visível (botão de ajuda). */
+  help?: boolean
   onClose(): void
 }
 
 const TUTORIAL_STEPS = [
   'Arraste o mapa para navegar e use a roda do mouse para dar zoom.',
   'Mova o cursor para ver RA/Dec em tempo real; clique para fixar um ponto.',
-  'Use a lupa do ponto selecionado para abrir a análise temporal (Nível 2).',
-  'Ou digite coordenadas ou o nome de um objeto na busca da barra lateral.',
+  'Com um ponto fixado, clique em "Analisar" para ver as imagens daquele lugar em várias datas.',
+  'Ou digite o nome de um objeto (ex.: Vega, M42) ou coordenadas na busca da barra lateral.',
   'Buscas anteriores ficam em HISTÓRICO; alvos de destaque, em ACESSO RÁPIDO.',
+  'Na análise, use "Comparar" para ver duas datas lado a lado e "Ferramentas" para realçar a imagem e montar cores.',
 ]
 
-export function OptionsModal({ onClose }: Props) {
-  const [showTutorial, setShowTutorial] = useState(false)
+export function OptionsModal({ help = false, onClose }: Props) {
+  const [showTutorial, setShowTutorial] = useState(help)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -34,7 +37,7 @@ export function OptionsModal({ onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <header className="modal__header">
-          <h2 id="options-title">Opções</h2>
+          <h2 id="options-title">Ajuda e contato</h2>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar" autoFocus>
             <X size={16} />
           </button>
@@ -47,7 +50,7 @@ export function OptionsModal({ onClose }: Props) {
             aria-expanded={showTutorial}
             onClick={() => setShowTutorial((v) => !v)}
           >
-            <HelpCircle size={18} aria-hidden="true" />
+            <HelpCircle size={22} className="key-icon" aria-hidden="true" />
             <span>
               <b>Ajuda / Tutorial</b>
               <small>Como navegar no mapa e comparar épocas</small>
@@ -63,13 +66,13 @@ export function OptionsModal({ onClose }: Props) {
 
           <LinkItem
             href={LINKS.forum}
-            icon={<MessagesSquare size={18} aria-hidden="true" />}
+            icon={<MessagesSquare size={22} className="key-icon" aria-hidden="true" />}
             title="Fórum da Comunidade"
             subtitle="Discuta descobertas com outros exploradores"
           />
           <LinkItem
             href={LINKS.support}
-            icon={<LifeBuoy size={18} aria-hidden="true" />}
+            icon={<LifeBuoy size={22} className="key-icon" aria-hidden="true" />}
             title="Contato com o Suporte"
             subtitle="Fale diretamente com a equipe"
           />
